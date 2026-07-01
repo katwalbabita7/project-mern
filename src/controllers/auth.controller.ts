@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import User from "../models/user.model";
-// * register
+// * register(create user)
 export const register = async (req:Request,res:Response,next:NextFunction) => {
     try{
         const { full_name, email, password, phone } = req.body;

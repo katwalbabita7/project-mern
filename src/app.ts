@@ -1,11 +1,14 @@
 import express,{NextFunction, Request,Response,} from "express";
-
+import userRoutes from "./routes/user.routes";
+import authRoutes from "./routes/auth.routes";
 
 // * app instance
 const app = express();
 
 // * using middleware
 app.use(express.json({limit: "10mb"}));
+
+
 
 // *using routes
 
@@ -19,6 +22,9 @@ app.get("/",(req:Request,res:Response,next:NextFunction)=>{
 })
 
 // * using route
+app.use("/users", userRoutes);
+app.use("/auth", authRoutes);
+
 
 // * error handler route
 app.use((req,res,next)=>{
