@@ -1,0 +1,3 @@
+// * getAll users
+
+// *getAll admins
