@@ -1,27 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import {hash, compare} from "../utils/bcrypt.utils";
 import User from "../models/user.model";
+import { ApiError  } from "../utils/apiError.utils";
+import { catchAsync } from "../utils/catchAsyn.utils";
+import { sendResponse } from "../utils/sendResponse.utils";
 // * register(create user)
-export const register = async (req:Request,res:Response,next:NextFunction) => {
-    try{
+export const register = catchAsync(
+    async (req:Request,res:Response,next:NextFunction) => {
         const { full_name, email, password, phone } = req.body;
         if(!full_name){
-            const error: any = new Error("full_name is required");
-            error.statusCode = 400;
-            error.status= "fail";
-            throw error;
+            throw new ApiError("full_name is required", 400);
         }
         if(!email){
-            const error: any = new Error("email is required");
-            error.statusCode = 400;
-            error.status= "fail";
-            throw error;
+            throw new ApiError("email is required", 400);
         }
         if(!password){
-            const error: any = new Error("password is required");
-            error.statusCode = 400;
-            error.status= "fail";
-            throw error;
+            throw new ApiError("password is required", 400);
         }
 
         // const user = await User.create({full_name, email, password, phone});
@@ -36,38 +30,34 @@ export const register = async (req:Request,res:Response,next:NextFunction) => {
         // * save 
         await user.save();
         // * send success response
-        res.status(201).json({
-            message:"Account created",
-            success:true,
-            status:"Success",
-            data: user,
-        })
-    }catch(error){
-        next(error);
-    }
-    
-}
+        // res.status(201).json({
+        //     message:"Account created",
+        //     success:true,
+        //     status:"Success",
+        //     data: user,
+
+        sendResponse(res,{
+            data:user,
+            message:"Account Created",
+            statusCode:201,
+        });
+    },
+);
 // * login
-export const login = async (
+export const login = catchAsync(
+    async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { email, password } = req.body;
 
     if(!email){
-            const error: any = new Error("email is required");
-            error.statusCode = 400;
-            error.status= "fail";
-            throw error;
-        }
-        if(!password){
-            const error: any = new Error("password is required");
-            error.statusCode = 400;
-            error.status= "fail";
-            throw error;
-        }
+    throw new ApiError("email is required", 400);
+    }
+    if(!password){
+    throw new ApiError("password is required", 400);
+    }
 
         // const { email, password } = req.body;
 
@@ -75,35 +65,28 @@ export const login = async (
 const user = await User.findOne({ email }).select("+password");
 
 if (!user) {
-    const error: any = new Error("Invalid Credential");
-    error.statusCode = 400;
-    error.status = "fail";
-    throw error;
+    throw new ApiError("Invalid Credentia", 400);
+
 }
 // * compare password
 const isPassMatched = compare(password,user.password);
 
 if (!isPassMatched) {
-    const error: any = new Error("Invalid Credential");
-    error.statusCode = 400;
-    error.status = "fail";
-    throw error;
+     throw new ApiError("Invalid Credentia", 400);
+
 }
 
 // * generate JWT token
 
 // const token = generateToken(user._id.toString());
 
-res.status(201).json({
-    message: "Login successful",
-    success: true,
-    status: "Success",
-    data: user,
+sendResponse(res,{
+    data:user,
+    message:"Login Success",
+    statusCode:201,
 });
-  } catch (error) {
-    next(error);
-  }
-};
+},
+);
 
 
 // * change password

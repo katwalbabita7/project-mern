@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-
+import { Role } from "../@types/enum.types";
 // * user schema
 export const userSchema = new mongoose.Schema(
     {
@@ -20,8 +20,8 @@ export const userSchema = new mongoose.Schema(
         },
         role:{
             type:String,
-            enum:["USER", "ADMIN", "SUPER_ADMIN"],
-            default:"USER",
+            enum:Object.values(Role),
+            default:Role.USER,
         },
         phone:{
             type:String,

@@ -2,71 +2,78 @@ import {Request, Response, NextFunction} from "express";
 
 import User from "../models/user.model";
 
+import { ApiError } from "../utils/apiError.utils";
+
+import { sendResponse } from "../utils/sendResponse.utils";
+import { catchAsync } from "../utils/catchAsyn.utils";
+
 // * Get All Users
-export const getAllUsers = async (
+export const getAllUsers = catchAsync(
+async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const users = await User.find();
 
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      message: "Users fetched successfully",
-      data: users,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    // res.status(200).json({
+    //   success: true,
+    //   status: "Success",
+    //   message: "Users fetched successfully",
+    //   data: users,
+    // });
+    sendResponse(res,{
+    data: users,
+    message:"Users fetched successfully",
+    statusCode:200,
+  });
+
+},
+);
 
 // * Get User By ID
-export const getUserById = async (
+export const getUserById = catchAsync(
+async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { id } = req.params;
 
     const user = await User.findById(id);
 
     if (!user) {
-      const error: any = new Error("User not found");
-      error.statusCode = 404;
-      error.status = "fail";
-      throw error;
+      throw new ApiError("User not found", 404);
     }
 
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      message: "User fetched successfully",
-      data: user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    // res.status(200).json({
+    //   success: true,
+    //   status: "Success",
+    //   message: "User fetched successfully",
+    //   data: user,
+    // });
+
+    sendResponse(res,{
+    data: user,
+    message:"Users fetched successfully",
+    statusCode:200,
+  });
+},
+);
 
 // * Update User
-export const updateUser = async (
+export const updateUser = catchAsync(
+async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { id } = req.params;
 
     const user = await User.findById(id);
 
     if (!user) {
-      const error: any = new Error("User not found");
-      error.statusCode = 404;
-      error.status = "fail";
-      throw error;
+      throw new ApiError("User not found", 404);
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -78,44 +85,49 @@ export const updateUser = async (
       }
     );
 
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      message: "User updated successfully",
-      data: updatedUser,
+    // res.status(200).json({
+    //   success: true,
+    //   status: "Success",
+    //   message: "User updated successfully",
+    //   data: updatedUser,
+    // });
+
+    sendResponse(res,{
+    data: updatedUser,
+    message:"User updated successfully",
+    statusCode:200,
     });
-  } catch (error) {
-    next(error);
-  }
-};
+},
+);
 
 // * Delete User
-export const deleteUser = async (
+export const deleteUser = catchAsync(
+async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { id } = req.params;
 
     const user = await User.findById(id);
 
     if (!user) {
-      const error: any = new Error("User not found");
-      error.statusCode = 404;
-      error.status = "fail";
-      throw error;
+      throw new ApiError("User not found", 404);
     }
 
     await User.findByIdAndDelete(id);
 
-    res.status(200).json({
-      success: true,
-      status: "Success",
-      message: "User deleted successfully",
+    // res.status(200).json({
+    //   success: true,
+    //   status: "Success",
+    //   message: "User deleted successfully",
+    // });
+
+    sendResponse(res,{
+    data: user,
+    message:"User deleted successfully",
+    statusCode:200,
     });
-  } catch (error) {
-    next(error);
-  }
-};
+  },
+);
 // *getAll admins
