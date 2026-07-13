@@ -23,12 +23,21 @@ export const userSchema = new mongoose.Schema(
             enum:Object.values(Role),
             default:Role.USER,
         },
+        profile_image:{
+            type:{
+                path:{
+                    type: String,
+                    required: true,
+                },
+                public_id:{
+                    type: String,
+                    required: true,
+                },
+            },
+        },
         phone:{
             type:String,
         },
-        proile_image:{
-            type:String,
-        }
     },
     {
         timestamps:true

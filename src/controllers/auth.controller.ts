@@ -4,10 +4,18 @@ import User from "../models/user.model";
 import { ApiError  } from "../utils/apiError.utils";
 import { catchAsync } from "../utils/catchAsyn.utils";
 import { sendResponse } from "../utils/sendResponse.utils";
+import {upload} from "../utils/cloudinary.utils";
+
+const uploadFolder = "/profiles";
+
+
 // * register(create user)
 export const register = catchAsync(
     async (req:Request,res:Response,next:NextFunction) => {
-        const { full_name, email, password, phone } = req.body;
+        const { full_name, email, password, phone,} = req.body;
+        const file = req.file;
+    //     console.log("req.file =", req.file);
+    // console.log("req.body =", req.body);
         if(!full_name){
             throw new ApiError("full_name is required", 400);
         }
@@ -26,6 +34,15 @@ export const register = catchAsync(
         user.password = hashPass;
 
         // * handle image upload
+        if(file){
+            // user.profile_image = file.path;
+            const {path , public_id} = await upload(file, uploadFolder);
+            user.profile_image = {
+                path,
+                public_id,
+            };
+
+        }
 
         // * save 
         await user.save();
