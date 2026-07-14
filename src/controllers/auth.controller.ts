@@ -5,6 +5,7 @@ import { ApiError  } from "../utils/apiError.utils";
 import { catchAsync } from "../utils/catchAsyn.utils";
 import { sendResponse } from "../utils/sendResponse.utils";
 import {upload} from "../utils/cloudinary.utils";
+import {generateToken,verifyToken} from "../utils/jwt.utils";
 
 const uploadFolder = "/profiles";
 
@@ -94,12 +95,21 @@ if (!isPassMatched) {
 }
 
 // * generate JWT token
+const access_token = generateToken({
+_id: user._id,
+email: user.email,
+role: user.role,
+full_name: user.full_name, 
+});
 
 // const token = generateToken(user._id.toString());
 
 sendResponse(res,{
-    data:user,
     message:"Login Success",
+    data:{
+    data: user,
+    access_token,
+    },
     statusCode:201,
 });
 },
