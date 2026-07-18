@@ -2,11 +2,13 @@ import express,{NextFunction, Request,Response,} from "express";
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
 import brandRoutes from "./routes/brand.routes";
+import cookieParser from "cookie-parser";
 
 // * app instance
 const app = express();
 
 // * using middleware
+app.use(cookieParser());
 app.use(express.json({limit: "10mb"}));
 
 

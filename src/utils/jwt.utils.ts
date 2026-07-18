@@ -28,19 +28,22 @@ throw  error;
 };
 
 // Verify Token
-export const verifyToken = (token: string): IPayload => {
-    if (!process.env.JWT_SECRET) {
+export const verifyJwtToken = (token: string) => {
+    if (!ENV_CONFIG.jwt_secret) {
         throw new ApiError("JWT_SECRET is not defined in .env", 500);
     }
 
     try {
-        return jwt.verify(token, process.env.JWT_SECRET) as IPayload;
-    } catch (error) {
-        throw new ApiError("Invalid or expired token", 401);
+    return jwt.verify(token, ENV_CONFIG.jwt_secret);
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      throw new ApiError("Token has expired", 401);
     }
+    throw new ApiError("Invalid token", 401);
+  }
 };
 
 // Optional: Decode without verification
-export const decodeToken = (token: string) => {
-    return jwt.decode(token);
-};
+// export const decodeToken = (token: string) => {
+//     return jwt.decode(token);
+// };

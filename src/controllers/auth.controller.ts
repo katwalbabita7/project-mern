@@ -5,7 +5,7 @@ import { ApiError  } from "../utils/apiError.utils";
 import { catchAsync } from "../utils/catchAsyn.utils";
 import { sendResponse } from "../utils/sendResponse.utils";
 import {upload} from "../utils/cloudinary.utils";
-import {generateToken,verifyToken} from "../utils/jwt.utils";
+import {generateToken,verifyJwtToken} from "../utils/jwt.utils";
 import ENV_CONFIG from "../config/env.config";
 import { IImage } from "../@types/globel.types";
 
@@ -125,11 +125,67 @@ sendResponse(res,{
 );
 
 
+// * Get Profile (Only own profile)
+export const getProfile = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const userId = req.user?._id;
+
+        if (!userId) {
+            throw new ApiError("Please login to access this resource", 401);
+        }
+
+        const user = await User.findById(userId).select("-password");
+
+        if (!user) {
+            throw new ApiError("User not found", 404);
+        }
+
+        sendResponse(res, {
+            message: "Profile fetched successfully",
+            data: user,
+            statusCode: 200,
+        });
+    }
+);
+
+// * Delete Account (Only own account)
+export const deleteAccount = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const userId = req.user?._id;
+
+        if (!userId) {
+            throw new ApiError("Please login to access this resource", 401);
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            throw new ApiError("User not found", 404);
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        // Clear cookie
+        res.clearCookie('access_token', {
+            httpOnly: ENV_CONFIG.node_env === "development" ? false : true,
+            sameSite: ENV_CONFIG.node_env === "development" ? "lax" : "none",
+            secure: ENV_CONFIG.node_env === "development" ? false : true,
+        });
+
+        sendResponse(res, {
+            message: "Account deleted successfully",
+            data: null,
+            statusCode: 200,
+        });
+    }
+);
+
 // * change password
 
 // * forget password
 
 // * get profile
+
 
 // * change email
 
