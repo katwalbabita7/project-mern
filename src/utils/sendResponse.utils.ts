@@ -2,7 +2,7 @@ import { Response } from "express";
 
 type TSendResponse<T> = {
   message: string;
-  data: T;
+  data ?: T;
   statusCode: number;
 };
 

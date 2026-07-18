@@ -6,6 +6,8 @@ import { catchAsync } from "../utils/catchAsyn.utils";
 import { sendResponse } from "../utils/sendResponse.utils";
 import {upload} from "../utils/cloudinary.utils";
 import {generateToken,verifyToken} from "../utils/jwt.utils";
+import ENV_CONFIG from "../config/env.config";
+import { IImage } from "../@types/globel.types";
 
 const uploadFolder = "/profiles";
 
@@ -40,7 +42,7 @@ export const register = catchAsync(
             const {path , public_id} = await upload(file, uploadFolder);
             user.profile_image = {
                 path,
-                public_id,
+                publicId: public_id,
             };
 
         }
@@ -102,6 +104,13 @@ role: user.role,
 full_name: user.full_name, 
 });
 
+// * set cookie
+res.cookie('access_token', access_token,{
+    httpOnly: ENV_CONFIG.node_env === "development" ? false : true,
+    maxAge: Number(ENV_CONFIG.cookie_expire ?? "7") * 24 * 60 * 60 * 1000,
+    sameSite: ENV_CONFIG.node_env === "development" ? "lax" : "none",
+    secure: ENV_CONFIG.node_env === "development" ? false : true,
+});
 // const token = generateToken(user._id.toString());
 
 sendResponse(res,{

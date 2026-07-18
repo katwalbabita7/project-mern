@@ -47,3 +47,23 @@ export const upload = async (
     throw new ApiError("Failed to upload file to Cloudinary", 500);
   }
 };
+
+// * delete file
+export const removeFile = async (public_id: string): Promise<void> => {
+  try {
+    if (!public_id) {
+      throw new Error("Public ID is required");
+    }
+
+    const result = await cloudinary.uploader.destroy(public_id);
+
+    if (result.result !== "ok") {
+      console.warn(`Cloudinary delete warning: ${result.result}`);
+    }
+
+    console.log(`✅ Cloudinary image deleted: ${public_id}`);
+  } catch (error: any) {
+    console.error("Cloudinary delete failed:", error);
+    throw new ApiError(`Failed to delete image from Cloudinary: ${error.message}`, 500);
+  }
+};

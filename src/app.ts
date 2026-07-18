@@ -1,6 +1,7 @@
 import express,{NextFunction, Request,Response,} from "express";
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
+import brandRoutes from "./routes/brand.routes";
 
 // * app instance
 const app = express();
@@ -24,6 +25,9 @@ app.get("/",(req:Request,res:Response,next:NextFunction)=>{
 // * using route
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
+app.use("/api/brand", brandRoutes);
+
+
 
 
 // * error handler route

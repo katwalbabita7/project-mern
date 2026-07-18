@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Role } from "../@types/enum.types";
+import { imageSchema } from "./image.model";
 // * user schema
 export const userSchema = new mongoose.Schema(
     {
@@ -24,16 +25,8 @@ export const userSchema = new mongoose.Schema(
             default:Role.USER,
         },
         profile_image:{
-            type:{
-                path:{
-                    type: String,
-                    required: true,
-                },
-                public_id:{
-                    type: String,
-                    required: true,
-                },
-            },
+            type:imageSchema,
+            default: null,
         },
         phone:{
             type:String,
