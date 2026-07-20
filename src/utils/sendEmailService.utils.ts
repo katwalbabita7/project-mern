@@ -1,12 +1,39 @@
+import { MailOptions } from "nodemailer/lib/json-transport";
 import ENV_CONFIG from "../config/nodemailer.config";
 import transporter from "../config/nodemailer.config";
-const sendEmail = async()=>{
+
+export interface IMailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  cc?: string  | string[];
+  bcc?: string | string[];
+  attachments?: any[];
+} 
+
+export const sendEmail = async(mailOptions : IMailOptions)=>{
+     const {to,html,subject,bcc,cc,attachments} = mailOptions 
     try{
-        await transporter.sendMail({
-            to: "babitakatwal49@gmail.com",
-            from:"katwalbabita7@gmail.com",
-            subject:"hello",
-        })
+        const options:MailOptions = {
+            to,
+            html,
+            subject,
+
+        };
+        if(bcc){
+            options["bcc"] =bcc;
+        }
+        if(cc){
+            options["cc"] =cc;
+        }
+        if(attachments){
+            options["attachments"] =attachments;
+        }
+
+
+
+        await transporter.sendMail(options);
+        console.log("mail send");
     }catch(error){
         console.log(error);
     }

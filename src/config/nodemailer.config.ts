@@ -1,14 +1,6 @@
 import nodemailer from "nodemailer";
 import ENV_CONFIG from "./env.config";
 
-export interface SMTPConfig {
-  host: string;
-  port: number;
-  secure?: boolean;
-  user: string;
-  pass: string;
-} 
-
 const transporter = nodemailer.createTransport({
   host: ENV_CONFIG.smtp_host,
   port: ENV_CONFIG.smtp_port,

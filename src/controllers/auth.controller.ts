@@ -8,6 +8,8 @@ import {upload} from "../utils/cloudinary.utils";
 import {generateToken,verifyJwtToken} from "../utils/jwt.utils";
 import ENV_CONFIG from "../config/env.config";
 import { IImage } from "../@types/globel.types";
+import {sendEmail} from "../utils/sendEmailService.utils";
+import {accountCreatedEmailHtml, loginDetectedEmailHtml} from "../utils/emailTemplate.utils";
 
 const uploadFolder = "/profiles";
 
@@ -49,6 +51,17 @@ export const register = catchAsync(
 
         // * save 
         await user.save();
+        // * send account created email
+        sendEmail({
+            to : "katwalbabita59@gmail.com",
+            // to:user.email,
+            subject :"Account Created",
+            html: accountCreatedEmailHtml({
+                fullName : user.full_name,
+                email : user.email,
+                createdAt: user.createdAt,
+            })
+        })
         // * send success response
         // res.status(201).json({
         //     message:"Account created",
@@ -103,6 +116,19 @@ email: user.email,
 role: user.role,
 full_name: user.full_name, 
 });
+
+// * send account created email
+        sendEmail({
+            to : "katwalbabita59@gmail.com",
+            // to:user.email,
+            subject :"Login Detected",
+            html: loginDetectedEmailHtml({
+                fullName : user.full_name,
+                email : user.email,
+                loginAt: new Date(Date.now()),
+            })
+        })
+
 
 // * set cookie
 res.cookie('access_token', access_token,{
