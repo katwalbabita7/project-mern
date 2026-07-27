@@ -12,6 +12,8 @@ export const uploder = () => {
         fs.mkdirSync(folder, { recursive: true });
     }
 
+    // const storage = multer.memoryStorage();
+
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
             cb(null, folder);
@@ -55,3 +57,4 @@ export const uploder = () => {
 
     return upload;
 };
+

@@ -92,7 +92,15 @@ export const productSchema = new mongoose.Schema({
     reviewCount: {
         type: Number,
         default: 0,
-    }
+    },
+    new_arrival:{
+        type:Boolean,
+        default:true,
+    },
+    is_feature:{
+        type:Boolean,
+        default:false,
+    },
 }, {
     timestamps: true, // Automatically adds createdAt and updatedAt
     toJSON: { virtuals: true },
@@ -107,7 +115,7 @@ productSchema.virtual('finalPrice').get(function() {
 // Index for better search performance
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ category: 1 });
-productSchema.index({ sku: 1 });
+
 
 const Product = mongoose.model('Product', productSchema);
 export default Product;

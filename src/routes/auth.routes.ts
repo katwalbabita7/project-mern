@@ -6,12 +6,15 @@ import {
 } from "../controllers/auth.controller";
 import { uploder } from "../middlewares/multer.middleware";
 import {authenticate} from "../middlewares/auth.middleware";
+import {validate} from "../middlewares/validator.middleware";
+import {registerUserSchema} from "../validators/auth.validator";
 
 const router = express.Router();
 const upload = uploder();
 
 // register
-router.post("/register",upload.single("profile_image"), register);
+
+router.post("/register",upload.single("profile_image"),register);
 
 // * login
 router.post("/login", login);

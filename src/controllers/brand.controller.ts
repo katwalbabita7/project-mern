@@ -1,147 +1,158 @@
 import { Request, Response, NextFunction } from 'express';
 import Brand from '../models/brand.model';
-import {catchAsync} from '../utils/catchAsyn.utils';
-import {sendResponse} from '../utils/sendResponse.utils';
-import {ApiError} from '../utils/apiError.utils'; 
-import { removeFile, upload } from '../utils/cloudinary.utils';
-import { IImage } from '../@types/globel.types';
+import { catchAsync } from '../utils/catchAsyn.utils';
+import { sendResponse } from '../utils/sendResponse.utils';
+import { ApiError } from '../utils/apiError.utils';
+import { deleteFromCloudinary, upload } from '../utils/cloudinary.utils';
 
-// * upload folder
-const folder = "/brands";
-// Create Brand
-export const createBrand = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { name, description, logo } = req.body;
-  const file = req.file;
+// Import Validators
+import {
+  createBrandSchema,
+  validateGetAllBrands,
+  validateGetBrand,
+  validateUpdateBrand,
+  validateDeleteBrand,
+} from '../validators/brand.validator';   // adjust path if needed
 
-        if(!name){
-              throw new ApiError("name is required", 400);
-          }
-          if(!file){
-              throw new ApiError("logo is required", 400);
-          }
+const uploadFolder = "/brands";
 
-  const brand = await Brand.findOne({ name: name });
+// CREATE BRAND 
+export const createBrand = catchAsync(async (req: Request, res: Response) => {
+    const { name, description } = req.body;
+    const file = req.file;   // ← यो undefined हुन सक्छ
 
-  if(brand){
-        throw new ApiError('brand:${name} already exist', 409);
+    // Check for duplicate name
+    const existingBrand = await Brand.findOne({ name: name.trim() });
+    if (existingBrand) {
+        throw new ApiError(`Brand with name "${name}" already exists`, 409);
     }
 
-    // * creating brand instance
-    const newBrand = new Brand({ name,description, logo });
+    const newBrand = new Brand({ 
+        name, 
+        description 
+    });
 
-    //* upload logo
-    const {path, public_id} = await upload(file, folder);
-    newBrand.logo = {
-         path,
-         publicId: public_id,
+    // Upload logo only if file exists
+    if (file) {
+        const { path, public_id } = await upload(file, uploadFolder);
+        newBrand.logo = { path, publicId: public_id };
+    } 
 
-    }
-
-    // * save 
     await newBrand.save();
 
-
-  sendResponse(res, {
-    data: newBrand,
-    message: "Brand created successfully",
-    statusCode: 201,
-  });
+    sendResponse(res, {
+        data: newBrand,
+        message: "Brand created successfully",
+        statusCode: 201,
+    });
 });
 
-// Get All Brands
+// GET ALL BRANDS 
 export const getAllBrands = catchAsync(async (req: Request, res: Response) => {
-  const brands = await Brand.find().sort({ createdAt: -1 });
+    const { page = 1, limit = 10, search } = req.query;
 
-//   success response
-  sendResponse(res, {
-    data: { brands },
-    message: "Brands fetched successfully",
-    statusCode: 200,
-  });
+    const pageNumber = Math.max(1, Number(page));
+    const limitNumber = Math.min(50, Math.max(1, Number(limit)));
+
+    let query: any = {};
+
+    if (search) {
+        query.name = { $regex: search as string, $options: 'i' };
+    }
+
+    const brands = await Brand.find(query)
+        .sort({ createdAt: -1 })
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber);
+
+    const total = await Brand.countDocuments(query);
+
+    sendResponse(res, {
+        data: brands,
+        meta: {
+            count: brands.length,
+            total,
+            totalPages: Math.ceil(total / limitNumber),
+            page: pageNumber,
+            limit: limitNumber,
+        },
+        message: "Brands fetched successfully",
+        statusCode: 200,
+    });
 });
 
-// Get Single Brand
-export const getBrand = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const {id} = req.params;
-  const brand = await Brand.findById({_id: id});
+// GET SINGLE BRAND 
+export const getBrand = catchAsync(async (req: Request, res: Response) => {
+    const brand = await Brand.findById(req.params.id);
 
-  if (!brand) {
-    return next(new ApiError('No brand found with that ID', 404));
-  }
+    if (!brand) {
+        throw new ApiError('No brand found with that ID', 404);
+    }
 
-  sendResponse(res, {
-    data: { brand },
-    message: "Brand fetched successfully",
-    statusCode: 200,
-  });
+    sendResponse(res, {
+        data: brand,
+        message: "Brand fetched successfully",
+        statusCode: 200,
+    });
 });
 
-// Update Brand
-export const updateBrand = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const {id} = req.params;
-  const {name, description} = req.body;
-  const file = req.file;
-  
-    if(!name){
-     throw new ApiError("name is required", 400);
-    }
-    if(!file){
-        throw new ApiError("logo is required", 400);
+// UPDATE BRAND 
+export const updateBrand = catchAsync(async (req: Request, res: Response) => {
+    const { name, description } = req.body;
+    const file = req.file;
+
+    const brand = await Brand.findById(req.params.id);
+    if (!brand) {
+        throw new ApiError('Brand not found', 404);
     }
 
-  const brand = await Brand.findOne({ name: name });
-
-  if(brand){
-        throw new ApiError('brand:${name} already exist', 409);
+    // Name update with duplicate check
+    if (name && name !== brand.name) {
+        const existing = await Brand.findOne({ name: name.trim() });
+        if (existing) {
+            throw new ApiError(`Brand with name "${name}" already exists`, 409);
+        }
+        brand.name = name;
     }
 
-    const oldBrand = await Brand.findOne({ _id: id });
-
-    if(!oldBrand){
-        throw new ApiError('brand:${id} not found', 400);
+    // Description update
+    if (description !== undefined) {
+        brand.description = description;
     }
 
-    if (name) oldBrand.name = name;
-    if (description) oldBrand.description = description;
-    
-    if(file){
-
-        // * delete old logo
-        if (oldBrand.logo?.publicId) {
-           await removeFile(oldBrand.logo.publicId);
+    // Logo update - only if file is provided
+    if (file) {
+        if (brand.logo?.publicId) {
+            await deleteFromCloudinary(brand.logo.publicId);
         }
 
-         //* upload new logo
-        const {path, public_id} = await upload(file, folder);
-        oldBrand.logo = {
-         path,
-         publicId: public_id,
-
-        };
+        const { path, public_id } = await upload(file, uploadFolder);
+        brand.logo = { path, publicId: public_id };
     }
-    
 
-    // * save 
-    await oldBrand.save();
+    await brand.save();
 
-
-  sendResponse(res, {
-    data: oldBrand,
-    message: 'brand:${id} update',
-    statusCode: 201,
-  });
+    sendResponse(res, {
+        data: brand,
+        message: "Brand updated successfully",
+        statusCode: 200,
+    });
 });
+// DELETE BRAND
+export const deleteBrand = catchAsync(async (req: Request, res: Response) => {
+    const brand = await Brand.findByIdAndDelete(req.params.id);
 
-// Delete Brand
-export const deleteBrand = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const brand = await Brand.findByIdAndDelete(req.params.id);
+    if (!brand) {
+        throw new ApiError('Brand not found', 404);
+    }
 
-  if (!brand) {
-    return next(new ApiError('No brand found with that ID', 404));
-  }
+    // Delete logo from Cloudinary if exists
+    if (brand.logo?.publicId) {
+        await deleteFromCloudinary(brand.logo.publicId).catch(console.error);
+    }
 
-  sendResponse(res, {
-    message: "Brand deleted successfully",
-    statusCode: 204,
-  });
+    sendResponse(res, {
+        message: "Brand deleted successfully",
+        statusCode: 200,
+    });
 });

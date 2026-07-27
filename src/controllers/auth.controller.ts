@@ -21,15 +21,15 @@ export const register = catchAsync(
         const file = req.file;
     //     console.log("req.file =", req.file);
     // console.log("req.body =", req.body);
-        if(!full_name){
-            throw new ApiError("full_name is required", 400);
-        }
-        if(!email){
-            throw new ApiError("email is required", 400);
-        }
-        if(!password){
-            throw new ApiError("password is required", 400);
-        }
+        // if(!full_name){
+        //     throw new ApiError("full_name is required", 400);
+        // }
+        // if(!email){
+        //     throw new ApiError("email is required", 400);
+        // }
+        // if(!password){
+        //     throw new ApiError("password is required", 400);
+        // }
 
         // const user = await User.create({full_name, email, password, phone});
         const user = new User({full_name, email, phone});
@@ -53,8 +53,8 @@ export const register = catchAsync(
         await user.save();
         // * send account created email
         sendEmail({
-            to : "katwalbabita59@gmail.com",
-            // to:user.email,
+            // to : "katwalbabita59@gmail.com",
+            to:user.email,
             subject :"Account Created",
             html: accountCreatedEmailHtml({
                 fullName : user.full_name,
