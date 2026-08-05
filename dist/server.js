@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const app_1 = __importDefault(require("./app"));
-const dbconfig_1 = require("../src/config/dbconfig");
+const dbconfig_1 = require("./config/dbconfig");
 const env_config_1 = __importDefault(require("./config/env.config"));
 const nodemailer_config_1 = require("./config/nodemailer.config");
 const PORT = env_config_1.default.PORT;
