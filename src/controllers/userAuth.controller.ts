@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextFunction, Request, Response } from "express";
 import {hash, compare} from "../utils/bcrypt.utils";
 import User, { DEFAULT_AVATAR } from "../models/user.model";
@@ -9,7 +10,7 @@ import {generateToken,verifyJwtToken} from "../utils/jwt.utils";
 import ENV_CONFIG from "../config/env.config";
 import { IImage } from "../@types/globel.types";
 import {sendEmail} from "../utils/sendEmailService.utils";
-import {accountCreatedEmailHtml, loginDetectedEmailHtml} from "../utils/emailTemplate.utils";
+import {accountCreatedEmailHtml, loginDetectedEmailHtml, passwordResetOtpEmailHtml} from "../utils/emailTemplate.utils";
 import { Role } from "../@types/enum.types";
 
 const uploadFolder = "/profiles";
@@ -234,8 +235,112 @@ export const changePassword = catchAsync(
     });
   }
 );
+// * Forgot Password and Send OTP
+export const forgotPassword = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
 
-// * forget password
+    if (!email) {
+      throw new ApiError("Email is required", 400);
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new ApiError("No account found with this email", 404);
+    }
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.passwordResetToken = otp;
+    user.passwordResetExpires = expires;
+    await user.save();
+
+    // Send OTP email
+    await sendEmail({
+  to: user.email,
+  subject: "Password Reset OTP",
+  html: passwordResetOtpEmailHtml({
+    fullName: user.full_name,
+    otp: otp,
+  }),
+});
+
+    sendResponse(res, {
+      message: "OTP has been sent to your email",
+      data: null,
+      statusCode: 200,
+    });
+  }
+);
+
+// * Verify OTP
+export const verifyOTP = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      throw new ApiError("Email and OTP are required", 400);
+    }
+
+    const user = await User.findOne({
+      email,
+      passwordResetToken: otp,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+passwordResetToken +passwordResetExpires");
+
+    if (!user) {
+      throw new ApiError("Invalid or expired OTP", 400);
+    }
+
+    sendResponse(res, {
+      message: "OTP verified successfully",
+      data: { verified: true },
+      statusCode: 200,
+    });
+  }
+);
+
+// * Reset Password
+export const resetPassword = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      throw new ApiError("Email, OTP and new password are required", 400);
+    }
+
+    if (newPassword.length < 6) {
+      throw new ApiError("Password must be at least 6 characters", 400);
+    }
+
+    const user = await User.findOne({
+      email,
+      passwordResetToken: otp,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+passwordResetToken +passwordResetExpires +password");
+
+    if (!user) {
+      throw new ApiError("Invalid or expired OTP", 400);
+    }
+
+    // Hash new password
+    user.password = await hash(newPassword);
+
+    // Clear OTP fields
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    sendResponse(res, {
+      message: "Password has been reset successfully. You can now login.",
+      data: null,
+      statusCode: 200,
+    });
+  }
+);
 
 // * Change Email
 export const changeEmail = catchAsync(

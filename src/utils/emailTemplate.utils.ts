@@ -236,3 +236,102 @@ export const loginDetectedEmailHtml = (user: {
 
   return html;
 };
+
+// * send password reset OTP email
+export const passwordResetOtpEmailHtml = (user: {
+  fullName: string;
+  otp: string;
+}) => {
+  const html = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Password Reset OTP</title>
+  </head>
+
+  <body style="margin:0;padding:0;background-color:#F3F4F6;font-family:Arial,sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+      <tr>
+        <td align="center">
+
+          <table width="600" cellpadding="0" cellspacing="0"
+            style="background:#ffffff;border-radius:12px;overflow:hidden;">
+
+            <!-- Header -->
+            <tr>
+              <td style="background:#4F46E5;padding:30px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;">
+                  Password Reset
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:40px;">
+
+                <h2 style="margin-top:0;color:#111827;">
+                  Hello, ${user.fullName}
+                </h2>
+
+                <p style="font-size:16px;color:#4B5563;line-height:28px;">
+                  You requested to reset your password. Please use the OTP below to continue.
+                </p>
+
+                <!-- OTP Box -->
+                <div style="
+                  margin:30px 0;
+                  padding:25px;
+                  background:#EEF2FF;
+                  border:2px dashed #4F46E5;
+                  border-radius:10px;
+                  text-align:center;
+                ">
+                  <p style="margin:0 0 10px;font-size:14px;color:#6B7280;">
+                    Your OTP Code
+                  </p>
+                  <h1 style="
+                    margin:0;
+                    letter-spacing:12px;
+                    color:#4F46E5;
+                    font-size:36px;
+                    font-weight:bold;
+                  ">
+                    ${user.otp}
+                  </h1>
+                </div>
+
+                <p style="font-size:15px;color:#4B5563;line-height:24px;">
+                  This OTP is valid for <strong>10 minutes</strong> only.
+                </p>
+
+                <p style="font-size:15px;color:#DC2626;line-height:24px;font-weight:bold;">
+                  If you did not request a password reset, please ignore this email or contact support.
+                </p>
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="background:#EEF2FF;padding:20px;text-align:center;color:#6B7280;font-size:14px;">
+                © 2026 Your Company. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+
+  </body>
+  </html>
+  `;
+
+  return html;
+};
