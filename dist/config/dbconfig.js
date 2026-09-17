@@ -7,8 +7,16 @@ exports.connectDb = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const connectDb = (DB_URI) => {
     mongoose_1.default.connect(DB_URI)
-        .then(() => {
+        .then(async () => {
         console.log("Database connected");
+        try {
+            await mongoose_1.default.connection.collection('users').dropIndex('profile_image.publicId_1');
+        }
+        catch (e) { }
+        try {
+            await mongoose_1.default.connection.collection('users').dropIndex('profile_image_1');
+        }
+        catch (e) { }
     })
         .catch((err) => {
         console.log("................Database connection error.....");

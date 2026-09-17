@@ -5,6 +5,17 @@ import { validate } from "../middlewares/validator.middleware";
 // MongoDB ID validation
 const mongoIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Category ID");
 
+const parentCategorySchema = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .refine(
+    (val) => !val || /^[0-9a-fA-F]{24}$/.test(val),
+    "Invalid Category ID"
+  )
+  .transform((val) => (val ? val : null));
+
 // Create Category Schema
 export const createCategorySchema = z.object({
   body: z.object({
@@ -16,9 +27,17 @@ export const createCategorySchema = z.object({
       .trim()
       .max(500, "Description cannot exceed 500 characters")
       .optional()
-      .nullable(),
-    parentCategory: mongoIdSchema.optional().nullable(),
-  }),
+      .nullable()
+      .or(z.literal("")),
+    parentCategory: parentCategorySchema,
+    isActive: z
+      .preprocess((val) => {
+        if (val === "true" || val === true) return true;
+        if (val === "false" || val === false) return false;
+        return val;
+      }, z.boolean())
+      .optional(),
+  }).passthrough(),
   params: z.object({}).optional(),
   query: z.object({}).optional(),
 });
@@ -32,7 +51,8 @@ export const getAllCategoriesSchema = z.object({
     limit: z.string().optional().transform((val) => (val ? Number(val) : 10)),
     search: z.string().trim().optional(),
     parent: mongoIdSchema.optional(),
-  }),
+    isActive: z.string().optional(),
+  }).passthrough(),
 });
 
 // Get Single Category
@@ -54,12 +74,17 @@ export const updateCategorySchema = z.object({
       .trim()
       .max(500, "Description cannot exceed 500 characters")
       .optional()
-      .nullable(),
-    parentCategory: mongoIdSchema.optional().nullable(),
-    isActive: z.boolean().optional(),
-  }).refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided",
-  }),
+      .nullable()
+      .or(z.literal("")),
+    parentCategory: parentCategorySchema,
+    isActive: z
+      .preprocess((val) => {
+        if (val === "true" || val === true) return true;
+        if (val === "false" || val === false) return false;
+        return val;
+      }, z.boolean())
+      .optional(),
+  }).passthrough().optional(),
   params: z.object({ id: mongoIdSchema }),
   query: z.object({}).optional(),
 });

@@ -9,41 +9,56 @@ const mongoIdSchema = zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
 exports.createProductSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string()
-            .min(3, "Product name must be at least 3 characters")
+            .min(2, "Product name must be at least 2 characters")
             .max(150, "Product name cannot exceed 150 characters"),
-        price: zod_1.z.number()
+        price: zod_1.z.coerce.number()
             .positive("Price must be greater than 0"),
+        discountPrice: zod_1.z.coerce.number().min(0).optional().nullable(),
         description: zod_1.z.string()
-            .min(10, "Description must be at least 10 characters")
+            .trim()
             .max(2000, "Description cannot exceed 2000 characters")
-            .optional(),
+            .optional()
+            .nullable()
+            .or(zod_1.z.literal("")),
         category: mongoIdSchema,
         brand: mongoIdSchema.optional(),
-        stock: zod_1.z.number()
+        stock: zod_1.z.coerce.number()
             .int("Stock must be a whole number")
             .min(0, "Stock cannot be negative")
             .default(0),
-        isActive: zod_1.z.boolean().default(true),
-    }),
+        sku: zod_1.z.string().trim().optional().nullable().or(zod_1.z.literal("")),
+        tags: zod_1.z.any().optional(),
+        isActive: zod_1.z.any().optional(),
+        new_arrival: zod_1.z.any().optional(),
+        is_feature: zod_1.z.any().optional(),
+    }).passthrough(),
 });
 exports.updateProductSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string()
-            .min(3, "Product name must be at least 3 characters")
+            .trim()
+            .min(2, "Product name must be at least 2 characters")
             .max(150, "Product name cannot exceed 150 characters")
             .optional(),
-        price: zod_1.z.number().positive("Price must be greater than 0").optional(),
+        price: zod_1.z.coerce.number().positive("Price must be greater than 0").optional(),
+        discountPrice: zod_1.z.coerce.number().min(0).optional().nullable(),
         description: zod_1.z.string()
-            .min(10, "Description must be at least 10 characters")
+            .trim()
             .max(2000, "Description cannot exceed 2000 characters")
-            .optional(),
+            .optional()
+            .nullable()
+            .or(zod_1.z.literal("")),
         category: mongoIdSchema.optional(),
         brand: mongoIdSchema.optional(),
-        stock: zod_1.z.number().int().min(0).optional(),
-        isActive: zod_1.z.boolean().optional(),
-    })
-        .refine((data) => Object.keys(data).length > 0, {
-        message: "At least one field must be provided for update",
+        stock: zod_1.z.coerce.number().int().min(0).optional(),
+        sku: zod_1.z.string().trim().optional().nullable().or(zod_1.z.literal("")),
+        tags: zod_1.z.any().optional(),
+        isActive: zod_1.z.any().optional(),
+        new_arrival: zod_1.z.any().optional(),
+        is_feature: zod_1.z.any().optional(),
+    }).passthrough(), // ← removed .optional() from the whole body
+    params: zod_1.z.object({
+        id: mongoIdSchema,
     }),
 });
 // ID Validation (used in get, update, delete)
@@ -72,7 +87,8 @@ exports.getAllProductsSchema = zod_1.z.object({
         brand: mongoIdSchema.optional(),
         minPrice: zod_1.z.string().optional(),
         maxPrice: zod_1.z.string().optional(),
-    }),
+        isActive: zod_1.z.string().optional(),
+    }).passthrough(),
 });
 // Export Validators
 exports.validateCreateProduct = (0, validator_middleware_1.validate)(exports.createProductSchema);

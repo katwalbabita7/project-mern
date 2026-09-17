@@ -7,8 +7,11 @@ const jwt_utils_1 = require("../utils/jwt.utils");
 const authenticate = (allowedRoles = []) => {
     return async (req, res, next) => {
         try {
-            // 1. Get token from cookies
-            const access_token = req.cookies?.access_token || req.cookies?.accessToken;
+            // 1. Get token from cookies or Authorization header
+            let access_token = req.cookies?.access_token || req.cookies?.accessToken;
+            if (!access_token && req.headers.authorization?.startsWith("Bearer ")) {
+                access_token = req.headers.authorization.split(" ")[1];
+            }
             if (!access_token) {
                 throw new apiError_utils_1.ApiError("Please login to access this resource", 401);
             }

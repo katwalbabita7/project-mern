@@ -13,7 +13,6 @@ exports.imageSchema = new mongoose_1.default.Schema({
     },
     publicId: {
         type: String,
-        required: [true, "Public ID is required"],
-        unique: true,
+        default: "",
     },
-});
+}, { _id: false });

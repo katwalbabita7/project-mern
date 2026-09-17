@@ -1,11 +1,11 @@
 import express from "express";
 
 import {
-    createCategory,
     getAllCategories,
-    getCategory,
-    updateCategory,
-    deleteCategory,
+    createCategories,
+    getCategories,
+    updateCategories,
+    deleteCategories,
 } from "../controllers/category.controller";
 
 import { uploder } from "../middlewares/multer.middleware";
@@ -32,7 +32,7 @@ router.post(
     authenticate([Role.ADMIN, Role.SUPER_ADMIN]),
     upload.single("image"),           // field name "image"
     validateCreateCategory,
-    createCategory
+    createCategories
 );
 
 // Get All Categories
@@ -46,7 +46,7 @@ router.get(
 router.get(
     "/:id",
     validateGetCategory,
-    getCategory
+    getCategories
 );
 
 // Update Category
@@ -55,7 +55,7 @@ router.put(
     authenticate([Role.ADMIN, Role.SUPER_ADMIN]),
     upload.single("image"),
     validateUpdateCategory,
-    updateCategory
+    updateCategories
 );
 
 // Delete Category
@@ -63,7 +63,7 @@ router.delete(
     "/:id",
     authenticate([Role.ADMIN, Role.SUPER_ADMIN]),
     validateDeleteCategory,
-    deleteCategory
+    deleteCategories
 );
 
 export default router;

@@ -26,9 +26,15 @@ export const validate = (schema: z.ZodObject)=>{
         }
 
         // * if validation success
-        req.body = result.data.body;
-        req.params = result.data.params as Record<string, any>;
-        Object.assign(req.query, result.data.query);
+        if (result.data.body !== undefined) {
+            req.body = result.data.body;
+        }
+        if (result.data.params !== undefined) {
+            req.params = result.data.params as Record<string, any>;
+        }
+        if (result.data.query !== undefined) {
+            Object.assign(req.query, result.data.query);
+        }
         next();
     };
 };

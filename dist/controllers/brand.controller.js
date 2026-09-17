@@ -20,8 +20,9 @@ exports.createBrand = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
         throw new apiError_utils_1.ApiError(`Brand with name "${name}" already exists`, 409);
     }
     const newBrand = new brand_model_1.default({
-        name,
-        description
+        name: name.trim(),
+        description: typeof description === 'string' ? description.trim() : '',
+        isActive: req.body.isActive !== undefined ? (req.body.isActive === true || String(req.body.isActive) === "true") : true,
     });
     // Upload logo only if file exists
     if (file) {
@@ -40,7 +41,14 @@ exports.getAllBrands = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
     const { page = 1, limit = 10, search } = req.query;
     const pageNumber = Math.max(1, Number(page));
     const limitNumber = Math.min(50, Math.max(1, Number(limit)));
+    const isAdmin = req.baseUrl.includes('admin') || req.originalUrl.includes('/admin');
     let query = {};
+    if (!isAdmin) {
+        query.isActive = true;
+    }
+    else if (req.query.isActive !== undefined) {
+        query.isActive = String(req.query.isActive) === 'true';
+    }
     if (search) {
         query.name = { $regex: search, $options: 'i' };
     }
@@ -64,7 +72,12 @@ exports.getAllBrands = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
 });
 // GET SINGLE BRAND 
 exports.getBrand = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
-    const brand = await brand_model_1.default.findById(req.params.id);
+    const isAdmin = req.baseUrl.includes('admin') || req.originalUrl.includes('/admin');
+    const query = { _id: req.params.id };
+    if (!isAdmin) {
+        query.isActive = true;
+    }
+    const brand = await brand_model_1.default.findOne(query);
     if (!brand) {
         throw new apiError_utils_1.ApiError('No brand found with that ID', 404);
     }
@@ -83,21 +96,25 @@ exports.updateBrand = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
         throw new apiError_utils_1.ApiError('Brand not found', 404);
     }
     // Name update with duplicate check
-    if (name && name !== brand.name) {
+    if (name && name.trim() !== brand.name) {
         const existing = await brand_model_1.default.findOne({ name: name.trim() });
         if (existing) {
             throw new apiError_utils_1.ApiError(`Brand with name "${name}" already exists`, 409);
         }
-        brand.name = name;
+        brand.name = name.trim();
     }
     // Description update
     if (description !== undefined) {
-        brand.description = description;
+        brand.description = typeof description === 'string' ? description.trim() : '';
+    }
+    // Status update
+    if (req.body.isActive !== undefined) {
+        brand.isActive = req.body.isActive === true || String(req.body.isActive) === "true";
     }
     // Logo update - only if file is provided
     if (file) {
         if (brand.logo?.publicId) {
-            await (0, cloudinary_utils_1.deleteFromCloudinary)(brand.logo.publicId);
+            await (0, cloudinary_utils_1.deleteFromCloudinary)(brand.logo.publicId).catch(console.error);
         }
         const { path, public_id } = await (0, cloudinary_utils_1.upload)(file, uploadFolder);
         brand.logo = { path, publicId: public_id };

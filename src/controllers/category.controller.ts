@@ -8,7 +8,7 @@ import { deleteFromCloudinary, upload } from '../utils/cloudinary.utils';
 const uploadFolder = "/categories";
 
 // CREATE CATEGORY
-export const createCategory = catchAsync(async (req: Request, res: Response) => {
+export const createCategories = catchAsync(async (req: Request, res: Response) => {
     const { name, description, parentCategory } = req.body;
     const file = req.file;
 
@@ -19,9 +19,10 @@ export const createCategory = catchAsync(async (req: Request, res: Response) => 
     }
 
     const newCategory = new Category({ 
-        name, 
-        description,
-        parentCategory 
+        name: name.trim(), 
+        description: typeof description === 'string' ? description.trim() : '',
+        parentCategory: parentCategory ? parentCategory : null,
+        isActive: req.body.isActive !== undefined ? (req.body.isActive === true || String(req.body.isActive) === "true") : true,
     });
 
     // Upload image if provided
@@ -46,7 +47,14 @@ export const getAllCategories = catchAsync(async (req: Request, res: Response) =
     const pageNumber = Math.max(1, Number(page));
     const limitNumber = Math.min(50, Math.max(1, Number(limit)));
 
+    const isAdmin = req.baseUrl.includes('admin') || req.originalUrl.includes('/admin');
     let query: any = {};
+
+    if (!isAdmin) {
+        query.isActive = true;
+    } else if (req.query.isActive !== undefined) {
+        query.isActive = String(req.query.isActive) === 'true';
+    }
 
     if (search) {
         query.name = { $regex: search as string, $options: 'i' };
@@ -78,8 +86,14 @@ export const getAllCategories = catchAsync(async (req: Request, res: Response) =
 });
 
 // GET SINGLE CATEGORY
-export const getCategory = catchAsync(async (req: Request, res: Response) => {
-    const category = await Category.findById(req.params.id).populate('parentCategory', 'name');
+export const getCategories = catchAsync(async (req: Request, res: Response) => {
+    const isAdmin = req.baseUrl.includes('admin') || req.originalUrl.includes('/admin');
+    const query: any = { _id: req.params.id };
+    if (!isAdmin) {
+        query.isActive = true;
+    }
+
+    const category = await Category.findOne(query).populate('parentCategory', 'name');
 
     if (!category) {
         throw new ApiError('No category found with that ID', 404);
@@ -93,7 +107,7 @@ export const getCategory = catchAsync(async (req: Request, res: Response) => {
 });
 
 // UPDATE CATEGORY
-export const updateCategory = catchAsync(async (req: Request, res: Response) => {
+export const updateCategories = catchAsync(async (req: Request, res: Response) => {
     const { name, description, parentCategory, isActive } = req.body;
     const file = req.file;
 
@@ -103,22 +117,22 @@ export const updateCategory = catchAsync(async (req: Request, res: Response) => 
     }
 
     // Name update with duplicate check
-    if (name && name !== category.name) {
+    if (name && name.trim() !== category.name) {
         const existing = await Category.findOne({ name: name.trim() });
         if (existing) {
             throw new ApiError(`Category with name "${name}" already exists`, 409);
         }
-        category.name = name;
+        category.name = name.trim();
     }
 
-    if (description !== undefined) category.description = description;
-    if (parentCategory !== undefined) category.parentCategory = parentCategory;
-    if (isActive !== undefined) category.isActive = isActive;
+    if (description !== undefined) category.description = typeof description === 'string' ? description.trim() : '';
+    if (parentCategory !== undefined) category.parentCategory = parentCategory ? parentCategory : null;
+    if (isActive !== undefined) category.isActive = isActive === true || String(isActive) === 'true';
 
     // Image update
     if (file) {
         if (category.image?.publicId) {
-            await deleteFromCloudinary(category.image.publicId);
+            await deleteFromCloudinary(category.image.publicId).catch(console.error);
         }
         const { path, public_id } = await upload(file, uploadFolder);
         category.image = { path, publicId: public_id };
@@ -134,7 +148,7 @@ export const updateCategory = catchAsync(async (req: Request, res: Response) => 
 });
 
 // DELETE CATEGORY
-export const deleteCategory = catchAsync(async (req: Request, res: Response) => {
+export const deleteCategories = catchAsync(async (req: Request, res: Response) => {
     const category = await Category.findByIdAndDelete(req.params.id);
 
     if (!category) {

@@ -10,8 +10,11 @@ import { verifyJwtToken } from "../utils/jwt.utils";
 export const authenticate = (allowedRoles: Role[] = []) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // 1. Get token from cookies
-      const access_token = req.cookies?.access_token || req.cookies?.accessToken;
+      // 1. Get token from cookies or Authorization header
+      let access_token = req.cookies?.access_token || req.cookies?.accessToken;
+      if (!access_token && req.headers.authorization?.startsWith("Bearer ")) {
+        access_token = req.headers.authorization.split(" ")[1];
+      }
 
       if (!access_token) {
         throw new ApiError("Please login to access this resource", 401);

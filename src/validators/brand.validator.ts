@@ -15,8 +15,16 @@ export const createBrandSchema = z.object({
       .trim()
       .max(500, "Description cannot exceed 500 characters")
       .optional()
-      .nullable(),
-  }),
+      .nullable()
+      .or(z.literal("")),
+    isActive: z
+      .preprocess((val) => {
+        if (val === "true" || val === true) return true;
+        if (val === "false" || val === false) return false;
+        return val;
+      }, z.boolean())
+      .optional(),
+  }).passthrough(),
   params: z.object({}).optional(),
   query: z.object({}).optional(),
 });
@@ -29,7 +37,8 @@ export const getAllBrandsSchema = z.object({
     page: z.string().optional().transform((val) => (val ? Number(val) : 1)),
     limit: z.string().optional().transform((val) => (val ? Number(val) : 10)),
     search: z.string().trim().optional(),
-  }),
+    isActive: z.string().optional(),
+  }).passthrough(),
 });
 
 // Get Single Brand
@@ -51,10 +60,16 @@ export const updateBrandSchema = z.object({
       .trim()
       .max(500, "Description cannot exceed 500 characters")
       .optional()
-      .nullable(),
-  }).refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field (name or description) must be provided",
-  }),
+      .nullable()
+      .or(z.literal("")),
+    isActive: z
+      .preprocess((val) => {
+        if (val === "true" || val === true) return true;
+        if (val === "false" || val === false) return false;
+        return val;
+      }, z.boolean())
+      .optional(),
+  }).passthrough().optional(),
   params: z.object({ id: mongoIdSchema }),
   query: z.object({}).optional(),
 });

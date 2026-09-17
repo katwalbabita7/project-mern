@@ -3,8 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ICartItem {
   product: mongoose.Types.ObjectId;
   quantity: number;
-  price: number;           // price at the time of adding to cart
-  variant?: string;        // optional (size, color, etc.)
+  price: number;
+  variant?: string;
 }
 
 export interface ICart extends Document {
@@ -42,7 +42,7 @@ const cartSchema = new Schema<ICart>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,           // One active cart per user
+      unique: true,
     },
     items: [cartItemSchema],
     totalAmount: {
@@ -57,15 +57,11 @@ const cartSchema = new Schema<ICart>(
   { timestamps: true }
 );
 
-// Index for faster lookup
-// cartSchema.index({ user: 1 });
-
-// Optional: Pre-save hook to calculate totalAmount
-cartSchema.pre("save", function (next: any) {
+// Pre-save hook to calculate totalAmount
+cartSchema.pre("save", function () {
   this.totalAmount = this.items.reduce((total, item) => {
     return total + item.price * item.quantity;
   }, 0);
-  next();
 });
 
 const Cart = mongoose.model<ICart>("Cart", cartSchema);

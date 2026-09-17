@@ -5,6 +5,13 @@ const zod_1 = require("zod");
 const validator_middleware_1 = require("../middlewares/validator.middleware");
 // MongoDB ID validation
 const mongoIdSchema = zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Category ID");
+const parentCategorySchema = zod_1.z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .refine((val) => !val || /^[0-9a-fA-F]{24}$/.test(val), "Invalid Category ID")
+    .transform((val) => (val ? val : null));
 // Create Category Schema
 exports.createCategorySchema = zod_1.z.object({
     body: zod_1.z.object({
@@ -16,9 +23,19 @@ exports.createCategorySchema = zod_1.z.object({
             .trim()
             .max(500, "Description cannot exceed 500 characters")
             .optional()
-            .nullable(),
-        parentCategory: mongoIdSchema.optional().nullable(),
-    }),
+            .nullable()
+            .or(zod_1.z.literal("")),
+        parentCategory: parentCategorySchema,
+        isActive: zod_1.z
+            .preprocess((val) => {
+            if (val === "true" || val === true)
+                return true;
+            if (val === "false" || val === false)
+                return false;
+            return val;
+        }, zod_1.z.boolean())
+            .optional(),
+    }).passthrough(),
     params: zod_1.z.object({}).optional(),
     query: zod_1.z.object({}).optional(),
 });
@@ -31,7 +48,8 @@ exports.getAllCategoriesSchema = zod_1.z.object({
         limit: zod_1.z.string().optional().transform((val) => (val ? Number(val) : 10)),
         search: zod_1.z.string().trim().optional(),
         parent: mongoIdSchema.optional(),
-    }),
+        isActive: zod_1.z.string().optional(),
+    }).passthrough(),
 });
 // Get Single Category
 exports.getCategorySchema = zod_1.z.object({
@@ -51,12 +69,19 @@ exports.updateCategorySchema = zod_1.z.object({
             .trim()
             .max(500, "Description cannot exceed 500 characters")
             .optional()
-            .nullable(),
-        parentCategory: mongoIdSchema.optional().nullable(),
-        isActive: zod_1.z.boolean().optional(),
-    }).refine((data) => Object.keys(data).length > 0, {
-        message: "At least one field must be provided",
-    }),
+            .nullable()
+            .or(zod_1.z.literal("")),
+        parentCategory: parentCategorySchema,
+        isActive: zod_1.z
+            .preprocess((val) => {
+            if (val === "true" || val === true)
+                return true;
+            if (val === "false" || val === false)
+                return false;
+            return val;
+        }, zod_1.z.boolean())
+            .optional(),
+    }).passthrough().optional(),
     params: zod_1.z.object({ id: mongoIdSchema }),
     query: zod_1.z.object({}).optional(),
 });

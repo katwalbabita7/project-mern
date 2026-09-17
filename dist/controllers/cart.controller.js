@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.clearCart = exports.removeFromCart = exports.updateCartItem = exports.getMyCart = exports.addToCart = void 0;
 const cart_model_1 = __importDefault(require("../models/cart.model"));
+const product_model_1 = __importDefault(require("../models/product.model"));
 const catchAsyn_utils_1 = require("../utils/catchAsyn.utils");
 const sendResponse_utils_1 = require("../utils/sendResponse.utils");
 const apiError_utils_1 = require("../utils/apiError.utils");
@@ -12,9 +13,18 @@ const apiError_utils_1 = require("../utils/apiError.utils");
 // ADD TO CART
 exports.addToCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
     const { product, quantity = 1, variant } = req.body;
-    const userId = req.user?.id; // Assuming auth middleware sets req.user
+    const userId = req.user?._id || req.user?.id; // Assuming auth middleware sets req.user
     if (!userId) {
         throw new apiError_utils_1.ApiError('Please login to add items to cart', 401);
+    }
+    // Determine price if not sent in request
+    let price = req.body.price;
+    if (price === undefined || price === null) {
+        const prod = await product_model_1.default.findById(product);
+        if (!prod) {
+            throw new apiError_utils_1.ApiError('Product not found', 404);
+        }
+        price = prod.discountPrice || prod.price;
     }
     // Get or create cart
     let cart = await cart_model_1.default.findOne({ user: userId });
@@ -33,7 +43,7 @@ exports.addToCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
         cart.items.push({
             product,
             quantity: Number(quantity),
-            price: req.body.price,
+            price: Number(price),
             variant
         });
     }
@@ -46,7 +56,7 @@ exports.addToCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
 });
 // GET MY CART
 exports.getMyCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
-    const userId = req.user?.id;
+    const userId = req.user?._id || req.user?.id;
     if (!userId) {
         throw new apiError_utils_1.ApiError('Please login to view cart', 401);
     }
@@ -73,7 +83,7 @@ exports.getMyCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
 exports.updateCartItem = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
     const { productId } = req.params;
     const { quantity, variant } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id || req.user?.id;
     if (!userId) {
         throw new apiError_utils_1.ApiError('Please login', 401);
     }
@@ -104,7 +114,7 @@ exports.updateCartItem = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
 exports.removeFromCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
     const { productId } = req.params;
     const { variant } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id || req.user?.id;
     if (!userId) {
         throw new apiError_utils_1.ApiError('Please login', 401);
     }
@@ -123,7 +133,7 @@ exports.removeFromCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
 });
 // CLEAR CART
 exports.clearCart = (0, catchAsyn_utils_1.catchAsync)(async (req, res) => {
-    const userId = req.user?.id;
+    const userId = req.user?._id || req.user?.id;
     if (!userId) {
         throw new apiError_utils_1.ApiError('Please login', 401);
     }

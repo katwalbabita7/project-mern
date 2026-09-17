@@ -42,6 +42,7 @@ exports.productSchema = new mongoose_1.default.Schema({
     sku: {
         type: String,
         unique: true,
+        sparse: true,
         trim: true,
         uppercase: true,
     },
@@ -54,7 +55,7 @@ exports.productSchema = new mongoose_1.default.Schema({
     category: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         required: [true, 'category is required'],
-        ref: "category",
+        ref: "Category",
         trim: true,
     },
     // Single main image (URL)
@@ -75,6 +76,14 @@ exports.productSchema = new mongoose_1.default.Schema({
         type: Boolean,
         default: true,
     },
+    new_arrival: {
+        type: Boolean,
+        default: true,
+    },
+    is_feature: {
+        type: Boolean,
+        default: false,
+    },
     // ratings
     averageRating: {
         type: Number,
@@ -86,14 +95,6 @@ exports.productSchema = new mongoose_1.default.Schema({
         type: Number,
         default: 0,
     },
-    new_arrival: {
-        type: Boolean,
-        default: true,
-    },
-    is_feature: {
-        type: Boolean,
-        default: false,
-    },
 }, {
     timestamps: true, // Automatically adds createdAt and updatedAt
     toJSON: { virtuals: true },
@@ -102,6 +103,13 @@ exports.productSchema = new mongoose_1.default.Schema({
 // Virtual for final price (with discount)
 exports.productSchema.virtual('finalPrice').get(function () {
     return this.discountPrice || this.price;
+});
+// Virtual for discount percentage
+exports.productSchema.virtual('discountPercent').get(function () {
+    if (this.discountPrice && this.price && this.discountPrice < this.price) {
+        return Math.round(((this.price - this.discountPrice) / this.price) * 100);
+    }
+    return 0;
 });
 // Index for better search performance
 exports.productSchema.index({ name: 'text', description: 'text' });

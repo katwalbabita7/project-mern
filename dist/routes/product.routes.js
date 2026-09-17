@@ -21,6 +21,8 @@ router.get('/featured', product_controller_1.getFeaturedProducts);
 router.get('/new-arrivals', product_controller_1.getNewArrivals);
 // Get products by brand
 router.get('/brand/:brand', product_validator_1.validateGetProductsByBrand, product_controller_1.getProductsByBrand);
+// Get products by category
+router.get('/category/:category', product_controller_1.getProductsByCategory);
 // Get single product by ID
 router.get('/:id', product_validator_1.validateProductId, product_controller_1.getProductById);
 //*ADMIN ROUTES 
@@ -28,7 +30,14 @@ router.get('/:id', product_validator_1.validateProductId, product_controller_1.g
 router.post('/', (0, auth_middleware_1.authenticate)([enum_types_1.Role.ADMIN, enum_types_1.Role.SUPER_ADMIN]), upload.array('images', 5), product_validator_1.validateCreateProduct, // ← Validation
 product_controller_1.createProduct);
 // Update Product
-router.put('/:id', (0, auth_middleware_1.authenticate)([enum_types_1.Role.ADMIN, enum_types_1.Role.SUPER_ADMIN]), upload.array('images', 5), product_validator_1.validateProductId, // ← ID validation first
+router.put('/:id', (0, auth_middleware_1.authenticate)([enum_types_1.Role.ADMIN, enum_types_1.Role.SUPER_ADMIN]), (req, res, next) => {
+    // Content-Type हेरेर multer चलाउने कि नचलाउने
+    if (req.is('multipart/form-data')) {
+        return upload.array('images', 5)(req, res, next);
+    }
+    next();
+}, 
+// upload.array('images', 5), 
 product_validator_1.validateUpdateProduct, // ← Update validation
 product_controller_1.updateProduct);
 // Delete Product

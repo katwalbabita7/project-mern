@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 import { Role } from "../@types/enum.types";
 import { imageSchema } from "./image.model";
+export const DEFAULT_AVATAR = {
+    path: "https://res.cloudinary.com/wwvdrlq3/image/upload/v1789541344/PROJECT/profiles/default_avatar.png",
+    publicId: "PROJECT/profiles/default_avatar",
+};
+
 // * user schema
 export const userSchema = new mongoose.Schema(
     {
@@ -26,17 +31,26 @@ export const userSchema = new mongoose.Schema(
         },
         profile_image:{
             type:imageSchema,
-            default: null,
+            default: () => ({ ...DEFAULT_AVATAR }),
         },
         phone:{
             type:String,
         },
+    // Forget / Reset Password
+    passwordResetToken: {
+      type: String,
+      select: false,
     },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+  },
     {
         timestamps:true
     },
 );
 
 // user model 
-const User = mongoose.model("user",userSchema);
+const User = mongoose.model("User", userSchema);
 export default User;

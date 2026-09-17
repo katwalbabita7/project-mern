@@ -66,17 +66,16 @@ const brandSchema = new mongoose_1.Schema({
     },
 }, { timestamps: true });
 // Pre-save Middleware
-brandSchema.pre('save', async function (next) {
-    if (this.isModified('name') || !this.slug) {
+brandSchema.pre('validate', async function () {
+    if ((this.isModified('name') || !this.slug) && this.name) {
         try {
-            const uniqueSlug = await (0, slug_utils_1.generateUniqueSlug)(this.name, mongoose_1.default.models.Brand, this._id ? this._id.toString() : undefined);
+            const uniqueSlug = await (0, slug_utils_1.generateUniqueSlug)(this.name, mongoose_1.default.models.Brand || this.constructor, this._id ? this._id.toString() : undefined);
             this.slug = uniqueSlug;
         }
         catch (error) {
-            console.error('Slug generation error:', error);
+            throw error;
         }
     }
-    next();
 });
 const Brand = mongoose_1.default.model('Brand', brandSchema);
 exports.default = Brand;

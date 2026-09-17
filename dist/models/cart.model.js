@@ -60,7 +60,7 @@ const cartSchema = new mongoose_1.Schema({
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
         required: true,
-        unique: true, // One active cart per user
+        unique: true,
     },
     items: [cartItemSchema],
     totalAmount: {
@@ -72,14 +72,11 @@ const cartSchema = new mongoose_1.Schema({
         default: true,
     },
 }, { timestamps: true });
-// Index for faster lookup
-// cartSchema.index({ user: 1 });
-// Optional: Pre-save hook to calculate totalAmount
-cartSchema.pre("save", function (next) {
+// Pre-save hook to calculate totalAmount
+cartSchema.pre("save", function () {
     this.totalAmount = this.items.reduce((total, item) => {
         return total + item.price * item.quantity;
     }, 0);
-    next();
 });
 const Cart = mongoose_1.default.model("Cart", cartSchema);
 exports.default = Cart;

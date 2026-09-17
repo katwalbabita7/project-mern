@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import {hash, compare} from "../utils/bcrypt.utils";
-import User from "../models/user.model";
+import User, { DEFAULT_AVATAR } from "../models/user.model";
 import { ApiError  } from "../utils/apiError.utils";
 import { catchAsync } from "../utils/catchAsyn.utils";
 import { sendResponse } from "../utils/sendResponse.utils";
@@ -10,6 +10,7 @@ import ENV_CONFIG from "../config/env.config";
 import { IImage } from "../@types/globel.types";
 import {sendEmail} from "../utils/sendEmailService.utils";
 import {accountCreatedEmailHtml, loginDetectedEmailHtml} from "../utils/emailTemplate.utils";
+import { Role } from "../@types/enum.types";
 
 const uploadFolder = "/profiles";
 
@@ -19,19 +20,6 @@ export const register = catchAsync(
     async (req:Request,res:Response,next:NextFunction) => {
         const { full_name, email, password, phone,} = req.body;
         const file = req.file;
-    //     console.log("req.file =", req.file);
-    // console.log("req.body =", req.body);
-        // if(!full_name){
-        //     throw new ApiError("full_name is required", 400);
-        // }
-        // if(!email){
-        //     throw new ApiError("email is required", 400);
-        // }
-        // if(!password){
-        //     throw new ApiError("password is required", 400);
-        // }
-
-        // const user = await User.create({full_name, email, password, phone});
         const user = new User({full_name, email, phone});
 
         // * password hash
@@ -46,7 +34,8 @@ export const register = catchAsync(
                 path,
                 publicId: public_id,
             };
-
+        } else {
+            user.profile_image = { ...DEFAULT_AVATAR };
         }
 
         // * save 
@@ -78,36 +67,34 @@ export const register = catchAsync(
 );
 // * login
 export const login = catchAsync(
-    async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     const { email, password } = req.body;
 
-    if(!email){
-    throw new ApiError("email is required", 400);
+    if (!email) {
+      throw new ApiError("email is required", 400);
     }
-    if(!password){
-    throw new ApiError("password is required", 400);
+    if (!password) {
+      throw new ApiError("password is required", 400);
     }
 
-        // const { email, password } = req.body;
+    // * Find user by email
+    const user = await User.findOne({ email }).select("+password");
 
-//* Find user by email
-const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      throw new ApiError("Invalid Credentia", 400);
+    }
 
-if (!user) {
-    throw new ApiError("Invalid Credentia", 400);
+    // * Only normal USER role allowed here
+    if (user.role !== Role.USER) {
+      throw new ApiError("Invalid Credentia", 400);
+    }
 
-}
-// * compare password
-const isPassMatched = compare(password,user.password);
+    // * compare password
+    const isPassMatched = await compare(password, user.password);
 
-if (!isPassMatched) {
-     throw new ApiError("Invalid Credentia", 400);
-
-}
+    if (!isPassMatched) {
+      throw new ApiError("Invalid Credentia", 400);
+    }
 
 // * generate JWT token
 const access_token = generateToken({
@@ -206,13 +193,126 @@ export const deleteAccount = catchAsync(
     }
 );
 
-// * change password
+// * Change Password
+export const changePassword = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?._id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) {
+      throw new ApiError("Please login to access this resource", 401);
+    }
+
+    if (!currentPassword || !newPassword) {
+      throw new ApiError("Current password and new password are required", 400);
+    }
+
+    if (newPassword.length < 6) {
+      throw new ApiError("New password must be at least 6 characters", 400);
+    }
+
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    // Check current password
+    const isMatch = await compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new ApiError("Current password is incorrect", 400);
+    }
+
+    // Hash and save new password
+    user.password = await hash(newPassword);
+    await user.save();
+
+    sendResponse(res, {
+      message: "Password changed successfully",
+      data: null,
+      statusCode: 200,
+    });
+  }
+);
 
 // * forget password
 
-// * get profile
+// * Change Email
+export const changeEmail = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?._id;
+    const { newEmail, password } = req.body;
 
+    if (!userId) {
+      throw new ApiError("Please login to access this resource", 401);
+    }
 
-// * change email
+    if (!newEmail || !password) {
+      throw new ApiError("New email and current password are required", 400);
+    }
 
-// * 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      throw new ApiError("Please provide a valid email", 400);
+    }
+
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    // Verify password
+    const isMatch = await compare(password, user.password);
+    if (!isMatch) {
+      throw new ApiError("Password is incorrect", 400);
+    }
+
+    // Check if new email already exists
+    const emailExists = await User.findOne({ email: newEmail });
+    if (emailExists) {
+      throw new ApiError("This email is already in use", 400);
+    }
+
+    const oldEmail = user.email;
+    user.email = newEmail;
+    await user.save();
+
+    // Optional: send notification to both emails
+    sendEmail({
+      to: oldEmail,
+      subject: "Email Changed",
+      html: `<p>Your email was changed to ${newEmail}. If this wasn't you, contact support immediately.</p>`,
+    });
+
+    sendEmail({
+      to: newEmail,
+      subject: "Email Successfully Updated",
+      html: `<p>Hello ${user.full_name}, your email has been successfully updated.</p>`,
+    });
+
+    sendResponse(res, {
+      message: "Email changed successfully",
+      data: { email: user.email },
+      statusCode: 200,
+    });
+  }
+);
+
+// * Logout
+export const logout = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    res.clearCookie("access_token", {
+      httpOnly: ENV_CONFIG.node_env === "development" ? false : true,
+      sameSite: ENV_CONFIG.node_env === "development" ? "lax" : "none",
+      secure: ENV_CONFIG.node_env === "development" ? false : true,
+    });
+
+    sendResponse(res, {
+      message: "Logged out successfully",
+      data: null,
+      statusCode: 200,
+    });
+  }
+);

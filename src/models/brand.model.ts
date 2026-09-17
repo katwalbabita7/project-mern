@@ -51,20 +51,19 @@ const brandSchema = new Schema<IBrand>(
 );
 
 // Pre-save Middleware
-brandSchema.pre('save', async function (next: any) {
-    if (this.isModified('name') || !this.slug) {
-        try {
-            const uniqueSlug = await generateUniqueSlug(
-                this.name,
-                mongoose.models.Brand,
-                this._id ? this._id.toString() : undefined
-            );
-            this.slug = uniqueSlug;
-        } catch (error) {
-            console.error('Slug generation error:', error);
-        }
+brandSchema.pre('validate', async function () {
+  if ((this.isModified('name') || !this.slug) && this.name) {
+    try {
+      const uniqueSlug = await generateUniqueSlug(
+        this.name,
+        mongoose.models.Brand || this.constructor,
+        this._id ? this._id.toString() : undefined
+      );
+      this.slug = uniqueSlug;
+    } catch (error) {
+      throw error; 
     }
-    next();
+  }
 });
 
 const Brand: Model<IBrand> = mongoose.model<IBrand>('Brand', brandSchema);

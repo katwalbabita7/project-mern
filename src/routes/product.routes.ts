@@ -7,6 +7,7 @@ import {
     updateProduct,
     deleteProduct,
     getProductsByBrand,
+    getProductsByCategory,
     getFeaturedProducts,
     getNewArrivals
 } from '../controllers/product.controller';
@@ -47,6 +48,9 @@ router.get('/brand/:brand',
     getProductsByBrand
 );
 
+// Get products by category
+router.get('/category/:category', getProductsByCategory);
+
 // Get single product by ID
 router.get('/:id', 
     validateProductId, 
@@ -68,8 +72,14 @@ router.post(
 router.put(
     '/:id', 
     authenticate([Role.ADMIN, Role.SUPER_ADMIN]), 
-    upload.array('images', 5), 
-    validateProductId,            // ← ID validation first
+    (req, res, next) => {
+    // Content-Type हेरेर multer चलाउने कि नचलाउने
+    if (req.is('multipart/form-data')) {
+      return upload.array('images', 5)(req, res, next);
+    }
+    next();
+  },
+    // upload.array('images', 5), 
     validateUpdateProduct,        // ← Update validation
     updateProduct
 );

@@ -16,8 +16,18 @@ exports.createBrandSchema = zod_1.z.object({
             .trim()
             .max(500, "Description cannot exceed 500 characters")
             .optional()
-            .nullable(),
-    }),
+            .nullable()
+            .or(zod_1.z.literal("")),
+        isActive: zod_1.z
+            .preprocess((val) => {
+            if (val === "true" || val === true)
+                return true;
+            if (val === "false" || val === false)
+                return false;
+            return val;
+        }, zod_1.z.boolean())
+            .optional(),
+    }).passthrough(),
     params: zod_1.z.object({}).optional(),
     query: zod_1.z.object({}).optional(),
 });
@@ -29,7 +39,8 @@ exports.getAllBrandsSchema = zod_1.z.object({
         page: zod_1.z.string().optional().transform((val) => (val ? Number(val) : 1)),
         limit: zod_1.z.string().optional().transform((val) => (val ? Number(val) : 10)),
         search: zod_1.z.string().trim().optional(),
-    }),
+        isActive: zod_1.z.string().optional(),
+    }).passthrough(),
 });
 // Get Single Brand
 exports.getBrandSchema = zod_1.z.object({
@@ -49,10 +60,18 @@ exports.updateBrandSchema = zod_1.z.object({
             .trim()
             .max(500, "Description cannot exceed 500 characters")
             .optional()
-            .nullable(),
-    }).refine((data) => Object.keys(data).length > 0, {
-        message: "At least one field (name or description) must be provided",
-    }),
+            .nullable()
+            .or(zod_1.z.literal("")),
+        isActive: zod_1.z
+            .preprocess((val) => {
+            if (val === "true" || val === true)
+                return true;
+            if (val === "false" || val === false)
+                return false;
+            return val;
+        }, zod_1.z.boolean())
+            .optional(),
+    }).passthrough().optional(),
     params: zod_1.z.object({ id: mongoIdSchema }),
     query: zod_1.z.object({}).optional(),
 });

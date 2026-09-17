@@ -9,9 +9,10 @@ const mongoIdSchema = zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID");
 exports.addToCartSchema = zod_1.z.object({
     body: zod_1.z.object({
         product: mongoIdSchema,
-        quantity: zod_1.z.string()
+        quantity: zod_1.z
+            .union([zod_1.z.number(), zod_1.z.string()])
             .optional()
-            .transform((val) => (val ? Number(val) : 1))
+            .transform((val) => (val !== undefined && val !== null ? Number(val) : 1))
             .pipe(zod_1.z.number().min(1, "Quantity must be at least 1")),
         variant: zod_1.z.string()
             .trim()
@@ -28,8 +29,9 @@ exports.addToCartSchema = zod_1.z.object({
 // Update Cart Item Schema
 exports.updateCartItemSchema = zod_1.z.object({
     body: zod_1.z.object({
-        quantity: zod_1.z.string()
-            .transform((val) => (val ? Number(val) : 1))
+        quantity: zod_1.z
+            .union([zod_1.z.number(), zod_1.z.string()])
+            .transform((val) => (val !== undefined && val !== null ? Number(val) : 1))
             .pipe(zod_1.z.number().min(0, "Quantity must be 0 or greater")),
         variant: zod_1.z.string().trim().optional().nullable(),
     }),
