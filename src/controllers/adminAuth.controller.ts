@@ -24,7 +24,7 @@ export const adminLogin = catchAsync(
 
     // Admin and super admin only
     if (user.role !== Role.ADMIN && user.role !== Role.SUPER_ADMIN) {
-  throw new ApiError("Access denied. Admin only.", 403);
+  throw new ApiError("Invalid email or password", 401);
 }
 
     const isPasswordMatched = await compare(password, user.password);

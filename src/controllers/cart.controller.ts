@@ -10,19 +10,20 @@ import { ApiError } from '../utils/apiError.utils';
 // ADD TO CART
 export const addToCart = catchAsync(async (req: Request, res: Response) => {
     const { product, quantity = 1, variant } = req.body;
-    const userId = req.user?._id || req.user?.id;   // Assuming auth middleware sets req.user
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
         throw new ApiError('Please login to add items to cart', 401);
     }
 
-    // Determine price if not sent in request
+    // Product fetch + stock check
+    const prod = await Product.findById(product);
+    if (!prod) {
+        throw new ApiError('Product not found', 404);
+    }
+
     let price = req.body.price;
     if (price === undefined || price === null) {
-        const prod = await Product.findById(product);
-        if (!prod) {
-            throw new ApiError('Product not found', 404);
-        }
         price = prod.discountPrice || prod.price;
     }
 
@@ -35,19 +36,27 @@ export const addToCart = catchAsync(async (req: Request, res: Response) => {
 
     // Check if product already exists in cart
     const existingItemIndex = cart.items.findIndex(
-        item => item.product.toString() === product && 
+        item => item.product.toString() === product &&
                 (!variant || item.variant === variant)
     );
 
+    const currentQty = existingItemIndex > -1
+        ? cart.items[existingItemIndex].quantity
+        : 0;
+    const newQty = currentQty + Number(quantity);
+
+    // Stock check
+    if (newQty > prod.stock) {
+        throw new ApiError(`Only ${prod.stock} available in stock`, 400);
+    }
+
     if (existingItemIndex > -1) {
-        // Update quantity
-        cart.items[existingItemIndex].quantity += Number(quantity);
+        cart.items[existingItemIndex].quantity = newQty;
     } else {
-        // Add new item
         cart.items.push({
             product,
             quantity: Number(quantity),
-            price: Number(price),       
+            price: Number(price),
             variant
         });
     }
@@ -72,7 +81,7 @@ export const getMyCart = catchAsync(async (req: Request, res: Response) => {
     const cart = await Cart.findOne({ user: userId })
         .populate({
             path: 'items.product',
-            select: 'name price images slug'   // adjust fields as needed
+            select: 'name price discountPrice image images stock slug' 
         });
 
     if (!cart) {
@@ -116,13 +125,27 @@ export const updateCartItem = catchAsync(async (req: Request, res: Response) => 
     }
 
     if (quantity < 1) {
-        // Remove item if quantity is 0 or less
         cart.items.splice(itemIndex, 1);
     } else {
+        // Stock check
+        const product = await Product.findById(productId);
+        if (!product) {
+            throw new ApiError('Product not found', 404);
+        }
+        if (Number(quantity) > product.stock) {
+            throw new ApiError(`Only ${product.stock} available in stock`, 400);
+        }
+
         cart.items[itemIndex].quantity = Number(quantity);
     }
 
     await cart.save();
+
+    // populate return
+    await cart.populate({
+        path: 'items.product',
+        select: 'name price discountPrice image images stock slug'
+    });
 
     sendResponse(res, {
         data: cart,
@@ -130,7 +153,6 @@ export const updateCartItem = catchAsync(async (req: Request, res: Response) => 
         statusCode: 200,
     });
 });
-
 // REMOVE ITEM FROM CART
 export const removeFromCart = catchAsync(async (req: Request, res: Response) => {
     const { productId } = req.params;

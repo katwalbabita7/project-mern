@@ -1,5 +1,4 @@
 import "dotenv/config";
-
 import app from "./app";
 import { connectDb } from "./config/dbconfig";
 import ENV_CONFIG from "./config/env.config";
